@@ -5,7 +5,7 @@ const orderSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
     items: [
@@ -13,31 +13,36 @@ const orderSchema = new mongoose.Schema(
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
-          required: true
+          required: true,
         },
         quantity: {
           type: Number,
-          required: true
-        }
-      }
+          required: true,
+        },
+        unit: {
+          type: String,
+          enum: ["yard", "feet"],
+          required: true,
+        },
+      },
     ],
 
     total: {
       type: Number,
-      required: true
+      required: true,
     },
 
     paymentMethod: {
       type: String,
       enum: ["COD", "Card"],
-      default: "COD"
+      default: "COD",
     },
 
     status: {
       type: String,
       enum: ["Pending", "Confirmed", "Shipped", "Delivered"],
-      default: "Pending"
-    }
+      default: "Pending",
+    },
   },
   { timestamps: true }
 );
