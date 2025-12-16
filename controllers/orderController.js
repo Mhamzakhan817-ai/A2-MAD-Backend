@@ -1,31 +1,37 @@
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 
+// 🧾 CREATE ORDER (FROM CART)
 exports.createOrder = async (req, res) => {
   try {
-    const { userId, items, total, paymentMethod } = req.body;
+    const { userId, paymentMethod, total } = req.body;
 
-    // 1. Create Order
+    // 1. Get user cart
+    const cart = await Cart.findOne({ user: userId });
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
+
+    // 2. Create order FROM CART (source of truth)
     const order = await Order.create({
       user: userId,
-      items: items.map(i => ({
-        product: i.productId,
-        quantity: i.quantity
+      items: cart.items.map((i) => ({
+        product: i.product._id || i.product,
+        quantity: i.quantity,
+        unit: i.unit,
       })),
       total,
-      paymentMethod
+      paymentMethod,
     });
 
-    // 2. Clear user cart after order
-    await Cart.findOneAndUpdate(
-      { user: userId },
-      { items: [] },
-      { new: true }
-    );
+    // 3. Clear cart AFTER successful order
+    cart.items = [];
+    await cart.save();
 
     res.json({
       message: "Order created successfully",
-      order
+      order,
     });
   } catch (error) {
     console.error("CREATE ORDER ERROR:", error);
@@ -33,11 +39,14 @@ exports.createOrder = async (req, res) => {
   }
 };
 
+// 📦 GET USER ORDERS
 exports.getOrders = async (req, res) => {
   try {
-    const userId = req.params.user_id;
+    const userId = req.params.userId;
 
-    const orders = await Order.find({ user: userId }).populate("items.product");
+    const orders = await Order.find({ user: userId })
+      .populate("items.product")
+      .sort({ createdAt: -1 });
 
     res.json(orders);
   } catch (error) {
